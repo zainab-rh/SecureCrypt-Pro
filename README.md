@@ -31,6 +31,7 @@ A secure desktop application for file encryption/decryption implementing modern 
 kdf = PBKDF2HMAC(
 
     algorithm=hashes.SHA256(),
+    
     length=32,  # 256-bit key
     
     salt=salt,  # 16-byte cryptographically random
