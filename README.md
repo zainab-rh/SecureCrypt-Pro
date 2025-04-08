@@ -1,37 +1,44 @@
-# SecureCrypt Pro - File Encryption Suite
+#  SecureCrypt Pro - File Encryption Tool 🔒
 
 
-A secure desktop application for file encryption/decryption implementing modern cryptographic standards, designed with security best practices and audit capabilities.
-
+A secure desktop application for file encryption/decryption implementing modern cryptographic standards with audit capabilities. Developed to demonstrate core security principles for cybersecurity applications.
 
 ![Screenshot](screenshot.png)
+## Key Features
 
-## Features
+### Cryptographic Implementation
+- **Algorithms**: AES-256-CBC (with PKCS#7 padding) & ChaCha20
+- **Key Derivation**: PBKDF2-HMAC-SHA256 (480,000 iterations - NIST compliant)
+- **Security Protections**:
+  - Constant-time comparison (timing attack mitigation)
+  - Tamper detection via authentication tags
+  - Secure salt generation (os.urandom)
 
-### Encryption Algorithms
-- AES-256-CBC & ChaCha20 implementations
-- PBKDF2 key derivation (480,000 iterations)
-- Secure salt generation & metadata protection
-- Constant-time comparison for authentication
+### Application Architecture
+- **Audit Trail**: Comprehensive logging of all cryptographic operations
+- **Key Management**: Secure generation and password-based derivation
+- **Defensive Programming**: Exception handling for all crypto operations
 
-### Application Features
-- Audit logging for all operations
-- Password strength meter
-- Progress visualization
-- Cross-platform compatibility
+### User Experience
+- Password strength visualization
+- Operation progress tracking
+- Cross-platform compatibility 
 
-### Security Features
-- Secure key generation and storage
-- Tamper detection system
-- Exception handling for cryptographic operations
-- GUI input validation
+## Technical Highlights
+# Security-focused key derivation (PBKDF2)
+kdf = PBKDF2HMAC(
+    algorithm=hashes.SHA256(),
+    length=32,  # 256-bit key
+    salt=salt,  # 16-byte cryptographically random
+    iterations=PBKDF2_ITERATIONS,  # 480,000 - OWASP recommended
+    backend=default_backend()
+)
+
 
 ## Installation
 
-1. **Requirements**:
-   - Python 3.8+
-   - Tcl/Tk (for GUI)
+ **Requirements**:
+   -Python 3.8+ (verified on 3.10.6)
+   -Libraries: cryptography, tkinter
 
-2. **Install dependencies**:
-```bash
-pip install cryptography tkinter
+
