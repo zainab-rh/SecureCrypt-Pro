@@ -26,7 +26,7 @@ A secure desktop application for file encryption/decryption implementing modern 
 
 ## Technical Highlights
 
-# Security-focused key derivation (PBKDF2)
+### Security-focused key derivation (PBKDF2)
 
 kdf = PBKDF2HMAC(
 
