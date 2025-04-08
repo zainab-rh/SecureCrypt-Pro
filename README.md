@@ -27,10 +27,10 @@ A secure desktop application for file encryption/decryption implementing modern 
 ## Technical Highlights
 
 # Security-focused key derivation (PBKDF2)
+
 kdf = PBKDF2HMAC(
 
     algorithm=hashes.SHA256(),
-    
     length=32,  # 256-bit key
     
     salt=salt,  # 16-byte cryptographically random
@@ -40,9 +40,11 @@ kdf = PBKDF2HMAC(
     backend=default_backend()
 )
 
+
 ## Installation
 
  **Requirements**:
+ 
    -Python 3.8+ (verified on 3.10.6)
    
    -Libraries: cryptography, tkinter
