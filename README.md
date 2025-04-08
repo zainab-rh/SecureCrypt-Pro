@@ -4,6 +4,8 @@
 A secure desktop application for file encryption/decryption implementing modern cryptographic standards, designed with security best practices and audit capabilities.
 
 
+![Screenshot](screenshot.png)
+
 ## Features
 
 ### Encryption Algorithms
