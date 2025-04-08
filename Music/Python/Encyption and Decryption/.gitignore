@@ -1,5 +1,21 @@
-Music/
-Music/Python/
 
 *.log
+*.bak
+*.swp
 *.tmp
+
+
+Desktop/
+Documents/
+Downloads/
+Pictures/
+
+
+.vscode/
+.idea/
+
+
+node_modules/
+
+
+Music/
