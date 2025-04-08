@@ -25,6 +25,7 @@ A secure desktop application for file encryption/decryption implementing modern 
 - Cross-platform compatibility 
 
 ## Technical Highlights
+
 # Security-focused key derivation (PBKDF2)
 kdf = PBKDF2HMAC(
     algorithm=hashes.SHA256(),
@@ -33,7 +34,6 @@ kdf = PBKDF2HMAC(
     iterations=PBKDF2_ITERATIONS,  # 480,000 - OWASP recommended
     backend=default_backend()
 )
-
 
 ## Installation
 
