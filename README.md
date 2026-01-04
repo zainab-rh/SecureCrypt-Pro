@@ -1,4 +1,4 @@
-# AES-GCM File Security Utility
+# SecureCrypt-Pro
 
 This project is a Python-based implementation of an authenticated encryption tool. It was developed to provide a secure way to encrypt files using **AES-256 in Galois/Counter Mode (GCM)**, ensuring both confidentiality and data integrity.
 
