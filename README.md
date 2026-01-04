@@ -1,53 +1,61 @@
-#  SecureCrypt Pro - File Encryption Tool 🔒
 
+# 🔒 SecureCrypt Pro - File Encryption Tool
+A Python-based file encryption tool developed as a cryptography project. This application uses **AES-256-GCM** (Galois/Counter Mode) to provide both confidentiality and data integrity (authenticated encryption).
 
-A secure desktop application for file encryption/decryption implementing modern cryptographic standards with audit capabilities. Developed to demonstrate core security principles for cybersecurity applications.
-
-![Screenshot](screenshot.png)
 ## Key Features
 
 ### Cryptographic Implementation
-- **Algorithms**: AES-256-CBC (with PKCS#7 padding) & ChaCha20
-- **Key Derivation**: PBKDF2-HMAC-SHA256 (480,000 iterations - NIST compliant)
-- **Security Protections**:
-  - Constant-time comparison (timing attack mitigation)
-  - Tamper detection via authentication tags
-  - Secure salt generation (os.urandom)
+* **Algorithm:** AES-256-GCM (Authenticated Encryption).
+    * *Why GCM?* Unlike CBC, GCM does not require padding (preventing Padding Oracle attacks) and includes built-in integrity checks to detect if a file has been tampered with.
+* **Key Derivation:** PBKDF2-HMAC-SHA256.
+    * Uses **600,000 iterations** (OWASP recommended) to prevent brute-force attacks on passwords.
+* **Randomness:** Uses `os.urandom` for generating cryptographic salts (16 bytes) and nonces (12 bytes).
 
-### Application Architecture
-- **Audit Trail**: Comprehensive logging of all cryptographic operations
-- **Key Management**: Secure generation and password-based derivation
-- **Defensive Programming**: Exception handling for all crypto operations
-
-### User Experience
-- Password strength visualization
-- Operation progress tracking
-- Cross-platform compatibility 
+### Application Features
+* **GUI:** Built with Tkinter (`ttk`) for a native look and feel.
+* **Logging:** Automatically logs encryption/decryption events to `app_log.txt` for audit purposes.
+* **Key Generator:** Includes a utility to generate cryptographically strong 32-byte hex keys.
+* **Error Handling:** Catches decryption errors (wrong password or corrupted/tampered files) to prevent crashes.
 
 ## Technical Highlights
 
-### Security-focused key derivation (PBKDF2)
+The core logic uses the `cryptography` library to ensure standard compliance.
 
+**Key Derivation Snippet:**
+
+```python
+# Deriving a 32-byte AES key from a user password
 kdf = PBKDF2HMAC(
-
     algorithm=hashes.SHA256(),
-    
-    length=32,  # 256-bit key
-    
-    salt=salt,  # 16-byte cryptographically random
-    
-    iterations=PBKDF2_ITERATIONS,  # 480,000 - OWASP recommended
-    
+    length=32,
+    salt=salt,
+    iterations=600000, # High iteration count for security
     backend=default_backend()
 )
+key = kdf.derive(password.encode())
+
+### File Structure
+The application appends the Salt and Nonce to the beginning of the file so they can be retrieved during decryption.
+
+```text
+[SALT (16 bytes)] + [NONCE (12 bytes)] + [CIPHERTEXT]
 
 
 ## Installation
 
- **Requirements**:
- 
-   -Python 3.8+ (verified on 3.10.6)
-   
-   -Libraries: cryptography, tkinter
+**Requirements:**
+* Python 3.8+ (verified on 3.10.6)
+* `cryptography` library
 
+**Setup:**
 
+```bash
+pip install cryptography
+
+## How to use
+
+### Encrypt
+Select a file, enter a strong password, and click "Encrypt". The file will be saved with a `.enc` extension.
+
+### Decrypt
+Select the `.enc` file and enter the original password. The app will verify the integrity tag and restore the original file.
