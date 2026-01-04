@@ -1,40 +1,30 @@
+# AES-GCM File Security Utility
 
-# 🔒 SecureCrypt Pro - File Encryption Tool
-A Python-based file encryption tool developed as a cryptography project. This application uses **AES-256-GCM** (Galois/Counter Mode) to provide both confidentiality and data integrity (authenticated encryption).
+This project is a Python-based implementation of an authenticated encryption tool. It was developed to provide a secure way to encrypt files using **AES-256 in Galois/Counter Mode (GCM)**, ensuring both confidentiality and data integrity.
 
-## Key Features
+## Project Overview
+The main goal was to create a functional GUI tool that follows modern cryptographic standards. Most basic tutorials use AES-CBC, but for this project, I chose **AES-GCM** because it includes an authentication tag. This prevents "bit-flipping" attacks and ensures that if even a single byte of the encrypted file is modified, the decryption will fail rather than producing corrupted data.
 
-### Cryptographic Implementation
-* **Algorithm:** AES-256-GCM (Authenticated Encryption).
-    * *Why GCM?* Unlike CBC, GCM does not require padding (preventing Padding Oracle attacks) and includes built-in integrity checks to detect if a file has been tampered with.
-* **Key Derivation:** PBKDF2-HMAC-SHA256.
-    * Uses **600,000 iterations** (OWASP recommended) to prevent brute-force attacks on passwords.
-* **Randomness:** Uses `os.urandom` for generating cryptographic salts (16 bytes) and nonces (12 bytes).
+### Technical Implementation
+* **KDF:** PBKDF2-HMAC-SHA256 with 600,000 iterations. This is aligned with current OWASP security recommendations to slow down brute-force attempts.
+* **Entropy:** Salts and nonces are generated using `os.urandom()` to ensure they are cryptographically secure.
+* **Data Integrity:** The tool verifies the GCM authentication tag during the decryption phase. If the password is wrong or the file has been tampered with, the app triggers a `cryptography.exceptions.InvalidTag` error, which I’ve handled with a user-friendly alert.
 
-### Application Features
-* **GUI:** Built with Tkinter (`ttk`) for a native look and feel.
-* **Logging:** Automatically logs encryption/decryption events to `app_log.txt` for audit purposes.
-* **Key Generator:** Includes a utility to generate cryptographically strong 32-byte hex keys.
-* **Error Handling:** Catches decryption errors (wrong password or corrupted/tampered files) to prevent crashes.
 
-## Technical Highlights
 
-The core logic uses the `cryptography` library to ensure standard compliance.
+## Binary File Format
+To keep the tool portable, the metadata required for decryption is stored directly in the output file header. The salt and nonce are not secret, so they are prepended to the ciphertext.
 
-**Key Derivation Snippet:**
+**Layout:** `[16 bytes: Salt] + [12 bytes: Nonce] + [Variable: Ciphertext + 16-byte Auth Tag]`
 
-```python
-# Deriving a 32-byte AES key from a user password
-kdf = PBKDF2HMAC(
-    algorithm=hashes.SHA256(),
-    length=32,
-    salt=salt,
-    iterations=600000, # High iteration count for security
-    backend=default_backend()
-)
-key = kdf.derive(password.encode())
-```
+---
 
+## Setup & Requirements
+This tool requires Python 3.8+ and the `cryptography` library.
+
+1. **Install dependencies:**
+   ```bash
+   pip install cryptography
 ## File Structure
 The application appends the Salt and Nonce to the beginning of the file so they can be retrieved during decryption.
 
@@ -43,23 +33,25 @@ The application appends the Salt and Nonce to the beginning of the file so they 
 ```
 
 
+2. **Run the application: **
+ ``` python
+python main.py
+ ```
 
-## Installation
+## Usage Instructions
 
-**Requirements:**
-* Python 3.8+ (verified on 3.10.6)
-* `cryptography` library
+### Encryption Tab
+1. Select a file using the **Browse** button.
+2. Enter a strong master password.
+3. Click **Start Encryption**. The application will generate a unique salt and nonce, encrypt the data, and save the result with a `.enc` extension in the same directory.
 
-**Setup:**
+### Decryption Tab
+1. Select the `.enc` file you wish to restore.
+2. Enter the original password.
+3. Click **Start Decryption**. The app will verify the **GCM integrity tag**; if the password is correct and the file hasn't been tampered with, the original file will be restored.
 
-```bash
-pip install cryptography
-```
+### Utilities
+I included a small utility tab to generate 256-bit random hex keys. This can be used if you need a high-entropy key instead of a standard password. This generates a cryptographically secure random value using `os.urandom()`.
 
-## How to use
-
-### Encrypt
-Select a file, enter a strong password, and click "Encrypt". The file will be saved with a `.enc` extension.
-
-### Decrypt
-Select the `.enc` file and enter the original password. The app will verify the integrity tag and restore the original file.
+### Logging
+All operations are logged to `crypto_debug.log`. This includes timestamps for successful encryptions and warnings for failed decryption attempts (useful for tracking if someone is trying to guess the password or if the file header has been corrupted).
