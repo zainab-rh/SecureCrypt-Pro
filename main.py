@@ -4,114 +4,98 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-# Cryptography imports
+# Using cryptography.hazmat because it's standard for senior-level security labs
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.backends import default_backend
 
-# Setup basic logging
+# Simple logger for debugging encryption/decryption flows
 logging.basicConfig(
-    filename='app_log.txt',
+    filename='crypto_debug.log',
     level=logging.INFO,
-    format='%(asctime)s - %(message)s'
+    format='%(levelname)s | %(asctime)s | %(message)s'
 )
 
-class FileEncryptorApp:
+class SecureFolderApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("File Encryptor Tool")
-        self.root.geometry("600x450")
+        self.root.title("AES-GCM File Security Tool")
+        self.root.geometry("550x450")
         
-        # Style configuration
-        self.style = ttk.Style()
-        self.style.theme_use('clam')
-        
-        # Constants
-        self.ITERATIONS = 600000 # Recommended iterations for PBKDF2
-        self.SALT_SIZE = 16
-        self.NONCE_SIZE = 12
+        # Security Constants
+        # 600,000 iterations is currently recommended by OWASP for PBKDF2-HMAC-SHA256
+        self.ITERATIONS = 600000 
+        self.SALT_SIZE = 16   # 128-bit salt
+        self.NONCE_SIZE = 12  # Standard nonce size for AES-GCM
         
         self.setup_ui()
 
     def setup_ui(self):
-        # Create tabs
-        tab_control = ttk.Notebook(self.root)
-        
-        self.tab_encrypt = ttk.Frame(tab_control)
-        self.tab_decrypt = ttk.Frame(tab_control)
-        self.tab_keygen = ttk.Frame(tab_control)
-        
-        tab_control.add(self.tab_encrypt, text='Encrypt')
-        tab_control.add(self.tab_decrypt, text='Decrypt')
-        tab_control.add(self.tab_keygen, text='Generate Key')
-        tab_control.pack(expand=1, fill="both", padx=10, pady=10)
-        
-        self.build_encrypt_tab()
-        self.build_decrypt_tab()
-        self.build_keygen_tab()
+        """Organizing the UI into tabs for a cleaner 'Tool' feel"""
+        self.tabs = ttk.Notebook(self.root)
+        self.tabs.pack(expand=True, fill="both", padx=5, pady=5)
 
-    def build_encrypt_tab(self):
-        frame = ttk.LabelFrame(self.tab_encrypt, text="Encryption Settings", padding=15)
-        frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # File selection
-        ttk.Label(frame, text="Select File:").pack(anchor='w')
-        self.enc_file_path = tk.StringVar()
-        entry_row = ttk.Frame(frame)
-        entry_row.pack(fill='x', pady=5)
-        ttk.Entry(entry_row, textvariable=self.enc_file_path).pack(side='left', fill='x', expand=True)
-        ttk.Button(entry_row, text="Browse", command=lambda: self.browse_file(self.enc_file_path)).pack(side='right', padx=5)
-        
-        # Password
-        ttk.Label(frame, text="Password:").pack(anchor='w', pady=(10,0))
-        self.enc_password = tk.StringVar()
-        ttk.Entry(frame, textvariable=self.enc_password, show="*").pack(fill='x', pady=5)
-        
-        # Execute
-        ttk.Button(frame, text="Encrypt File", command=self.do_encrypt).pack(pady=20)
-        self.enc_status = ttk.Label(frame, text="Ready", foreground="blue")
-        self.enc_status.pack()
+        self.enc_tab = ttk.Frame(self.tabs)
+        self.dec_tab = ttk.Frame(self.tabs)
+        self.util_tab = ttk.Frame(self.tabs)
 
-    def build_decrypt_tab(self):
-        frame = ttk.LabelFrame(self.tab_decrypt, text="Decryption Settings", padding=15)
-        frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # File selection
-        ttk.Label(frame, text="Select Encrypted File:").pack(anchor='w')
-        self.dec_file_path = tk.StringVar()
-        entry_row = ttk.Frame(frame)
-        entry_row.pack(fill='x', pady=5)
-        ttk.Entry(entry_row, textvariable=self.dec_file_path).pack(side='left', fill='x', expand=True)
-        ttk.Button(entry_row, text="Browse", command=lambda: self.browse_file(self.dec_file_path)).pack(side='right', padx=5)
-        
-        # Password
-        ttk.Label(frame, text="Password:").pack(anchor='w', pady=(10,0))
-        self.dec_password = tk.StringVar()
-        ttk.Entry(frame, textvariable=self.dec_password, show="*").pack(fill='x', pady=5)
-        
-        # Execute
-        ttk.Button(frame, text="Decrypt File", command=self.do_decrypt).pack(pady=20)
-        self.dec_status = ttk.Label(frame, text="Ready", foreground="blue")
-        self.dec_status.pack()
+        self.tabs.add(self.enc_tab, text="Encrypt")
+        self.tabs.add(self.dec_tab, text="Decrypt")
+        self.tabs.add(self.util_tab, text="Utilities")
 
-    def build_keygen_tab(self):
-        # A simple utility to generate a random strong password/key if needed
-        frame = ttk.LabelFrame(self.tab_keygen, text="Key Generator", padding=15)
-        frame.pack(fill="both", expand=True, padx=10, pady=10)
+        # Encryption Tab Layout
+        enc_frame = ttk.LabelFrame(self.enc_tab, text="File Encryption", padding=10)
+        enc_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.enc_path_var = tk.StringVar()
+        ttk.Label(enc_frame, text="Target File:").grid(row=0, column=0, sticky="w")
+        ttk.Entry(enc_frame, textvariable=self.enc_path_var, width=40).grid(row=1, column=0, pady=5)
+        ttk.Button(enc_frame, text="Browse", command=lambda: self._browse(self.enc_path_var)).grid(row=1, column=1, padx=5)
+
+        self.enc_pass_var = tk.StringVar()
+        ttk.Label(enc_frame, text="Master Password:").grid(row=2, column=0, sticky="w", pady=(10,0))
+        ttk.Entry(enc_frame, textvariable=self.enc_pass_var, show="*").grid(row=3, column=0, sticky="ew")
+
+        ttk.Button(enc_frame, text="Start Encryption", command=self.run_encryption).grid(row=4, column=0, pady=20)
+
+        # Decryption Tab Layout
+        dec_frame = ttk.LabelFrame(self.dec_tab, text="File Decryption", padding=10)
+        dec_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.dec_path_var = tk.StringVar()
+        ttk.Label(dec_frame, text="Encrypted (.enc) File:").grid(row=0, column=0, sticky="w")
+        ttk.Entry(dec_frame, textvariable=self.dec_path_var, width=40).grid(row=1, column=0, pady=5)
+        ttk.Button(dec_frame, text="Browse", command=lambda: self._browse(self.dec_path_var)).grid(row=1, column=1, padx=5)
+
+        self.dec_pass_var = tk.StringVar()
+        ttk.Label(dec_frame, text="Password:").grid(row=2, column=0, sticky="w", pady=(10,0))
+        ttk.Entry(dec_frame, textvariable=self.dec_pass_var, show="*").grid(row=3, column=0, sticky="ew")
+
+        ttk.Button(dec_frame, text="Start Decryption", command=self.run_decryption).grid(row=4, column=0, pady=20)
+
+        # Keygen Utility (just in case user wants a random hex key)
+        util_frame = ttk.LabelFrame(self.util_tab, text="Key Tools", padding=10)
+        util_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
-        ttk.Label(frame, text="Click below to generate a secure random token (32 bytes hex)").pack(pady=10)
-        self.generated_key_var = tk.StringVar()
-        ttk.Entry(frame, textvariable=self.generated_key_var, state="readonly").pack(fill='x', pady=5)
-        ttk.Button(frame, text="Generate", command=lambda: self.generated_key_var.set(os.urandom(32).hex())).pack(pady=5)
+        self.key_out = tk.StringVar()
+        ttk.Label(util_frame, text="Generate Secure 256-bit Hex Key:").pack(pady=5)
+        ttk.Entry(util_frame, textvariable=self.key_out, state="readonly", width=50).pack(pady=5)
+        ttk.Button(util_frame, text="Generate", command=lambda: self.key_out.set(os.urandom(32).hex())).pack()
 
-    def browse_file(self, var):
-        filename = filedialog.askopenfilename()
-        if filename:
-            var.set(filename)
+        # Simple progress feedback for better UX
+        self.progress = ttk.Progressbar(self.root, orient="horizontal", mode="determinate")
+        self.progress.pack(fill="x", side="bottom", padx=10, pady=5)
 
-    def derive_key(self, password: str, salt: bytes) -> bytes:
-        # PBKDF2 to turn the user password into a 32-byte AES key
+    def _browse(self, var):
+        f = filedialog.askopenfilename()
+        if f: var.set(f)
+
+    def _get_key(self, password, salt):
+        """
+        Derives a 32-byte (256-bit) key from a variable length password.
+        Using PBKDF2 with SHA256 as the PRF.
+        """
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
@@ -121,90 +105,97 @@ class FileEncryptorApp:
         )
         return kdf.derive(password.encode())
 
-    def do_encrypt(self):
-        file_path = self.enc_file_path.get()
-        password = self.enc_password.get()
-        
-        if not file_path or not password:
-            messagebox.showerror("Error", "Please select a file and enter a password.")
+    def run_encryption(self):
+        f_path = self.enc_path_var.get()
+        pwd = self.enc_pass_var.get()
+
+        if not f_path or not pwd:
+            messagebox.showwarning("Input Error", "File and Password are required.")
             return
 
         try:
-            # Read file data
-            with open(file_path, 'rb') as f:
-                plaintext = f.read()
-
-            # Generate salt and key
-            salt = os.urandom(self.SALT_SIZE)
-            key = self.derive_key(password, salt)
+            self.progress['value'] = 20
+            p_file = Path(f_path)
             
-            # Using AES-GCM (Galois/Counter Mode) because it provides authenticated encryption.
-            aesgcm = AESGCM(key)
+            # Use os.urandom for CSPRNG (Cryptographically Secure Pseudo-Random Number Generator)
+            salt = os.urandom(self.SALT_SIZE)
+            key = self._get_key(pwd, salt)
             nonce = os.urandom(self.NONCE_SIZE)
             
-            # Encrypt
-            ciphertext = aesgcm.encrypt(nonce, plaintext, None)
+            # Must read in 'rb' mode to handle non-text files correctly
+            with open(p_file, 'rb') as f:
+                data = f.read()
             
-            # Save format: [SALT (16)] + [NONCE (12)] + [CIPHERTEXT]
-            output_path = file_path + ".enc"
-            with open(output_path, 'wb') as f:
-                f.write(salt + nonce + ciphertext)
-            
-            logging.info(f"Encrypted {file_path}")
-            self.enc_status.config(text=f"Success! Saved as {os.path.basename(output_path)}", foreground="green")
-            messagebox.showinfo("Success", "File encrypted successfully!")
-            
-        except Exception as e:
-            logging.error(f"Encryption failed: {e}")
-            messagebox.showerror("Error", f"Encryption failed: {str(e)}")
-
-    def do_decrypt(self):
-        file_path = self.dec_file_path.get()
-        password = self.dec_password.get()
-        
-        if not file_path or not password:
-            messagebox.showerror("Error", "Please select a file and enter a password.")
-            return
-            
-        try:
-            with open(file_path, 'rb') as f:
-                file_data = f.read()
-            
-            # Extract components
-            # Format was: SALT (16) + NONCE (12) + CIPHERTEXT
-            if len(file_data) < 28:
-                raise ValueError("File is too small/corrupted")
-                
-            salt = file_data[:self.SALT_SIZE]
-            nonce = file_data[self.SALT_SIZE:self.SALT_SIZE+self.NONCE_SIZE]
-            ciphertext = file_data[self.SALT_SIZE+self.NONCE_SIZE:]
-            
-            # Derive key again
-            key = self.derive_key(password, salt)
-            
-            # Decrypt
+            self.progress['value'] = 50
+            # AES-GCM is an AEAD mode; it handles both encryption and authentication tags
             aesgcm = AESGCM(key)
-            plaintext = aesgcm.decrypt(nonce, ciphertext, None)
-            
-            # Restore original filename (remove .enc)
-            if file_path.endswith(".enc"):
-                output_path = file_path[:-4]
-            else:
-                output_path = file_path + ".decrypted"
-                
-            with open(output_path, 'wb') as f:
-                f.write(plaintext)
-                
-            logging.info(f"Decrypted {file_path}")
-            self.dec_status.config(text=f"Success! Restored {os.path.basename(output_path)}", foreground="green")
-            messagebox.showinfo("Success", "File decrypted successfully!")
+            ciphertext = aesgcm.encrypt(nonce, data, None) 
+
+            # Output file structure: [16b Salt][12b Nonce][Ciphertext + 16b Auth Tag]
+            out_name = p_file.with_suffix(p_file.suffix + ".enc")
+            with open(out_name, 'wb') as f:
+                f.write(salt + nonce + ciphertext)
+
+            self.progress['value'] = 100
+            logging.info(f"Encrypted file saved: {out_name.name}")
+            messagebox.showinfo("Success", f"Encrypted as:\n{out_name.name}")
             
         except Exception as e:
-            # AES-GCM raises an exception if the tag doesn't match (wrong password or tampered file)
-            logging.error(f"Decryption failed: {e}")
-            messagebox.showerror("Error", "Decryption failed. Wrong password or corrupted file.")
+            logging.error(f"Error during encryption: {str(e)}")
+            messagebox.showerror("System Error", f"Something went wrong: {e}")
+        finally:
+            self.progress['value'] = 0
+
+    def run_decryption(self):
+        f_path = self.dec_path_var.get()
+        pwd = self.dec_pass_var.get()
+
+        if not f_path or not pwd:
+            return
+
+        try:
+            self.progress['value'] = 20
+            with open(f_path, 'rb') as f:
+                raw_data = f.read()
+
+            # Manual slicing of the binary header
+            salt = raw_data[:self.SALT_SIZE]
+            nonce = raw_data[self.SALT_SIZE:self.SALT_SIZE+self.NONCE_SIZE]
+            ct = raw_data[self.SALT_SIZE+self.NONCE_SIZE:]
+
+            self.progress['value'] = 40
+            key = self._get_key(pwd, salt)
+            
+            aesgcm = AESGCM(key)
+            # Decrypt method will verify the auth tag automatically. 
+            # If the password is wrong or file tampered, it raises InvalidTag.
+            pt = aesgcm.decrypt(nonce, ct, None)
+
+            # Cleanup filename (stripping .enc)
+            p_path = Path(f_path)
+            out_name = p_path.stem if p_path.suffix == ".enc" else f"decrypted_{p_path.name}"
+            out_path = p_path.with_name(out_name)
+
+            with open(out_path, 'wb') as f:
+                f.write(pt)
+
+            self.progress['value'] = 100
+            messagebox.showinfo("Success", "Decryption complete. Integrity verified.")
+            
+        except Exception:
+            # We catch all exceptions here but log it as a likely Auth failure
+            logging.warning("Decryption failed. Potential bad password or corrupted file.")
+            messagebox.showerror("Auth Failure", "Invalid password or the file has been modified.")
+        finally:
+            self.progress['value'] = 0
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = FileEncryptorApp(root)
+    # Adding a bit of transparency for a slightly more modern look
+    try:
+        root.attributes('-alpha', 0.98) 
+    except:
+        pass
+        
+    app = SecureFolderApp(root)
     root.mainloop()
