@@ -33,12 +33,15 @@ kdf = PBKDF2HMAC(
     backend=default_backend()
 )
 key = kdf.derive(password.encode())
+```
 
-### File Structure
+## File Structure
 The application appends the Salt and Nonce to the beginning of the file so they can be retrieved during decryption.
 
 ```text
 [SALT (16 bytes)] + [NONCE (12 bytes)] + [CIPHERTEXT]
+```
+
 
 
 ## Installation
@@ -51,6 +54,7 @@ The application appends the Salt and Nonce to the beginning of the file so they 
 
 ```bash
 pip install cryptography
+```
 
 ## How to use
 
